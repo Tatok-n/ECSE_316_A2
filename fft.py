@@ -7,7 +7,7 @@ import sys
 import time
 import math
 
-from transforms import fft_2d, ifft_2d, fft_1d, dft_1d
+from transforms import fft_2d, ifft_2d, fft_1d, dft_1d, dft_2d
 
 # ------------------- MODE 2 (DENOISING) CONFIGS -------------------
 
@@ -22,6 +22,17 @@ DENOISE_METHOD = "low_pass"
 # For 'magnitude': Percentile to CUT (e.g., 95 = keep top 5%)
 # For 'hybrid': Tuple (fraction, percentile) -> (0.15, 90)
 DENOISE_VALUE = 0.10
+
+# ------------------- MODE 4 (RUNTIME ANALYSIS) CONFIGS -------------------
+
+# Range of problem sizes (2D matrix) (Powers of 2) (e.g. 5 = 2^5 x 2^5)
+# WARNING: Naive DFT is slow
+RUNTIME_MIN_POWER = 5
+RUNTIME_MAX_POWER = 8
+
+# Confidence Interval for error bars (e.g., 2.0 std devs approx 95%)
+CONFIDENCE_FACTOR = 2.0
+NUM_TRIALS = 10
 
 
 # ----------------------------- MAIN CODE -----------------------------
@@ -185,8 +196,81 @@ def handle_mode_3(image):
     plt.show()
 
 
-def handle_mode_4():
-    pass
+def handle_mode_4(min_pow, max_pow, trials, conf_factor):
+    sizes = []
+    dft_means = []
+    dft_stds = []
+    fft_means = []
+    fft_stds = []
+
+    # Loop through powers of 2
+    for p in range(min_pow, max_pow + 1):
+        N = 2**p
+        sizes.append(N)
+
+        # generate random 2D complex array
+        image = np.random.random((N, N)) + 1j * np.random.random((N, N))
+
+        t_dft = []
+        t_fft = []
+
+        # run Trials
+        for _ in range(trials):
+            # measure regular dft
+            start = time.time()
+            dft_2d(image)
+            t_dft.append(time.time() - start)
+
+            # measure fft
+            start = time.time()
+            fft_2d(image)
+            t_fft.append(time.time() - start)
+
+        # calculate Stats
+        nm = np.mean(t_dft)
+        ns = np.std(t_dft)
+        fm = np.mean(t_fft)
+        fs = np.std(t_fft)
+
+        dft_means.append(nm)
+        dft_stds.append(ns)
+        fft_means.append(fm)
+        fft_stds.append(fs)
+
+    # Plot
+    plt.figure(figsize=(10, 6))
+
+    # Plot DFT
+    plt.errorbar(
+        sizes,
+        dft_means,
+        yerr=np.array(dft_stds) * conf_factor,
+        fmt="-o",
+        label="Naive 2D DFT",
+        capsize=5,
+    )
+
+    # Plot FFT
+    plt.errorbar(
+        sizes,
+        fft_means,
+        yerr=np.array(fft_stds) * conf_factor,
+        fmt="-s",
+        label="Fast Fourier Transform (2D)",
+        capsize=5,
+    )
+
+    plt.xlabel("Problem Size (N for NxN matrix)")
+    plt.ylabel("Runtime (seconds)")
+    plt.title(f"Runtime Comparison: Naive vs FFT (Error Bars = {conf_factor}*std)")
+    plt.legend()
+    plt.grid(True, which="both", ls="-", alpha=0.5)
+
+    # Log scale
+    plt.xscale("log", base=2)
+    plt.yscale("log")
+
+    plt.show()
 
 
 def main():
