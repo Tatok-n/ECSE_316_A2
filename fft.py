@@ -295,7 +295,9 @@ def main():
 
     # handle mode 4
     if args.mode == 4:
-        handle_mode_4()
+        handle_mode_4(
+            RUNTIME_MIN_POWER, RUNTIME_MAX_POWER, NUM_TRIALS, CONFIDENCE_FACTOR
+        )
         return
 
     # load image for modes 1, 2, 3
