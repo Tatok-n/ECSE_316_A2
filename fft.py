@@ -7,7 +7,7 @@ import sys
 import time
 import math
 
-from transforms import fft_2d, ifft_2d, fft_1d, dft_1d, dft_2d
+from transform import fft_2d, ifft_2d, fft_1d, dft_1d, dft_2d
 
 # ------------------- MODE 2 (DENOISING) CONFIGS -------------------
 
@@ -294,22 +294,22 @@ def main():
     args = parser.parse_args()
 
     # handle mode 4
-    if args.mode == 4:
+    if args.m == 4:
         handle_mode_4(
             RUNTIME_MIN_POWER, RUNTIME_MAX_POWER, NUM_TRIALS, CONFIDENCE_FACTOR
         )
         return
 
     # load image for modes 1, 2, 3
-    img = load_image(args.image)
+    img = load_image(args.i)
 
-    if args.mode == 1:
+    if args.m == 1:
         handle_mode_1(img)
 
-    elif args.mode == 2:
+    elif args.m == 2:
         handle_mode_2(img, DENOISE_METHOD, DENOISE_VALUE)
 
-    elif args.mode == 3:
+    elif args.m == 3:
         handle_mode_3(img)
 
 
