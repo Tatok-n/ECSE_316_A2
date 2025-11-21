@@ -1,16 +1,31 @@
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 import cv2
 import sys
 import time
 import math
 
-from transforms import fft_2d, ifft_2d, fft_1d, naive_dft_1d
+from transforms import fft_2d, ifft_2d, fft_1d, dft_1d
+
+# ------------------- MODE 2 (DENOISING) CONFIGS -------------------
+
+# "low_pass"  : Removing high frequencies (Keep corners)
+# "high_pass" : Removing low frequencies (Remove corners)
+# "magnitude" : Thresholding everything (Keep strongest coefficients)
+# "hybrid"    : Keep low frequencies AND threshold the rest (Cutoff + Threshold)
+DENOISE_METHOD = "low_pass"
+
+# Parameter Value depends on method:
+# For 'low_pass'/'high_pass': Fraction of width/height to keep (e.g., 0.15 = 15%)
+# For 'magnitude': Percentile to CUT (e.g., 95 = keep top 5%)
+# For 'hybrid': Tuple (fraction, percentile) -> (0.15, 90)
+DENOISE_VALUE = 0.10
 
 
+# ----------------------------- MAIN CODE -----------------------------
 def load_image(filename):
-
     # load image in grayscale
     img = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
 
@@ -18,16 +33,14 @@ def load_image(filename):
         print(f"Error: Could not load image {filename}")
         sys.exit(1)
 
-    # resize/Pad logic
     h, w = img.shape
 
-    # find next power of 2
+    # find next power of 2 to fit image
     next_h = 1 << (h - 1).bit_length()
     next_w = 1 << (w - 1).bit_length()
 
     # pad with zeros if necessary
     if h != next_h or w != next_w:
-        print(f"Resizing image from {h}x{w} to {next_h}x{next_w} (Power of 2)")
         padded_img = np.zeros((next_h, next_w))
         padded_img[:h, :w] = img
         return padded_img
@@ -35,16 +48,141 @@ def load_image(filename):
     return img.astype(float)
 
 
+def plot_log_magnitude(fft_data, title="FFT Log Magnitude"):
+    plt.imshow(np.abs(fft_data), cmap="gray", norm=LogNorm())
+    plt.title(title)
+    plt.colorbar()
+
+
 def handle_mode_1(image):
-    pass
+    # run 2D fast fourier on image
+    ft = fft_2d(image)
+
+    # plot the result
+    plt.figure(figsize=(10, 5))
+    plt.subplot(1, 2, 1)
+    plt.imshow(image, cmap="gray")
+    plt.title("Original Image")
+    plt.subplot(1, 2, 2)
+    plot_log_magnitude(ft, "FFT (Log Scaled)")
 
 
-def handle_mode_2(image):
-    pass
+def handle_mode_2(image, method, value):
+    # setup
+    ft = fft_2d(image)
+    rows, cols = ft.shape
+    mask = np.zeros_like(ft)
+
+    if method == "low_pass":
+        fraction = value
+        r_lim = int(rows * fraction)
+        c_lim = int(cols * fraction)
+
+        # create the image mask
+        mask = np.zeros_like(ft)
+        mask[:r_lim, :c_lim] = 1  # keep Top-Left
+        mask[:r_lim, -c_lim:] = 1  # keep Top-Right
+        mask[-r_lim:, :c_lim] = 1  # keep Bottom-Left
+        mask[-r_lim:, -c_lim:] = 1  # keep Bottom-Right
+
+    elif method == "high_pass":
+        fraction = value
+        r_lim = int(rows * fraction)
+        c_lim = int(cols * fraction)
+
+        mask[:] = 1  # start with all 1s
+
+        # Remove corners
+        mask[:r_lim, :c_lim] = 0
+        mask[:r_lim, -c_lim:] = 0
+        mask[-r_lim:, :c_lim] = 0
+        mask[-r_lim:, -c_lim:] = 0
+
+    elif method == "magnitude":
+        percentile = value
+        # treshold magnitude
+        thresh = np.percentile(np.abs(ft), percentile)
+        # keep coefficients stronger than threshold
+        mask = np.abs(ft) >= thresh
+
+    elif method == "hybrid":
+        # value should be a tuple: (fraction, percentile)
+        fraction, percentile = value
+
+        # Low Pass Mask
+        r_lim = int(rows * fraction)
+        c_lim = int(cols * fraction)
+        spatial_mask = np.zeros_like(ft)
+        spatial_mask[:r_lim, :c_lim] = 1
+        spatial_mask[:r_lim, -c_lim:] = 1
+        spatial_mask[-r_lim:, :c_lim] = 1
+        spatial_mask[-r_lim:, -c_lim:] = 1
+
+        # Magnitude Mask
+        thresh = np.percentile(np.abs(ft), percentile)
+        mag_mask = np.abs(ft) >= thresh
+
+        # combine the masks
+        mask = np.logical_or(spatial_mask, mag_mask).astype(float)
+
+    # apply mask
+    ft_denoised = ft * mask
+
+    # output stats
+    non_zeros = np.count_nonzero(ft_denoised)
+    total = rows * cols
+    fraction = non_zeros / total
+    print(f"Non-zeros: {non_zeros}")
+    print(f"Fraction of coefficients kept: {fraction:.2%}")
+
+    # get image back
+    img_denoised = np.abs(ifft_2d(ft_denoised))
+
+    # plot original and denoised
+    plt.figure(figsize=(12, 6))
+
+    plt.subplot(1, 2, 1)
+    plt.imshow(image, cmap="gray")
+    plt.title("Original Image")
+
+    plt.subplot(1, 2, 2)
+    plt.imshow(img_denoised, cmap="gray")
+    plt.title(f"Denoised: {method} ({value})")
+
+    plt.show()
 
 
 def handle_mode_3(image):
-    pass
+    # setup
+    ft = fft_2d(image)
+    compression_levels = [0, 50, 80, 95, 98, 99.9]
+    plt.figure(figsize=(12, 8))
+
+    # process each compression levels
+    for i, p in enumerate(compression_levels):
+        # find the treshold (minimum to keep a coefficient)
+        threshold = np.percentile(np.abs(ft), p)
+
+        # apply mask to keep only those coefficient
+        mask = np.abs(ft) >= threshold
+        ft_compressed = ft * mask
+
+        # get back image and compute stats
+        img_compressed = np.abs(ifft_2d(ft_compressed))
+
+        nz = np.count_nonzero(mask)
+        size_bytes = nz * 16  # complex128 takes 16 bytes
+        print(
+            f"Level {i+1}: {p}% compressed. Non-zeros: {nz}. Approx Size: {size_bytes/1024:.1f} KB"
+        )
+
+        # plot it
+        plt.subplot(2, 3, i + 1)
+        plt.imshow(img_compressed, cmap="gray")
+        plt.title(f"{p}% Compression")
+        plt.axis("off")
+
+    plt.show()
 
 
 def handle_mode_4():
@@ -83,7 +221,7 @@ def main():
         handle_mode_1(img)
 
     elif args.mode == 2:
-        handle_mode_2(img)
+        handle_mode_2(img, DENOISE_METHOD, DENOISE_VALUE)
 
     elif args.mode == 3:
         handle_mode_3(img)
