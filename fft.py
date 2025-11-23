@@ -5,9 +5,9 @@ from matplotlib.colors import LogNorm
 import cv2
 import sys
 import time
-import math
 
-from transform import fft_2d, ifft_2d, fft_1d, dft_1d, dft_2d
+
+from transform import fft_2d, ifft_2d, dft_2d
 
 # ------------------- MODE 2 (DENOISING) CONFIGS -------------------
 
@@ -27,7 +27,7 @@ DENOISE_VALUE = 0.10
 
 # Range of problem sizes (2D matrix) (Powers of 2) (e.g. 5 = 2^5 x 2^5)
 # WARNING: Naive DFT is slow
-RUNTIME_MIN_POWER = 5
+RUNTIME_MIN_POWER = 1
 RUNTIME_MAX_POWER = 8
 
 # Confidence Interval for error bars (e.g., 2.0 std devs approx 95%)
@@ -208,6 +208,8 @@ def handle_mode_4(min_pow, max_pow, trials, conf_factor):
         N = 2**p
         sizes.append(N)
 
+        print(f"\n--- Processing Matrix Size {N}x{N} (2^{p}) ---")
+
         # generate random 2D complex array
         image = np.random.random((N, N)) + 1j * np.random.random((N, N))
 
@@ -215,7 +217,9 @@ def handle_mode_4(min_pow, max_pow, trials, conf_factor):
         t_fft = []
 
         # run Trials
-        for _ in range(trials):
+        for t in range(trials):
+            print(f"    Running Trial {t + 1}/{trials}...", end="\r", flush=True)
+
             # measure regular dft
             start = time.time()
             dft_2d(image)
