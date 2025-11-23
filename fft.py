@@ -25,18 +25,18 @@ DENOISE_METHOD = "low_pass"
 # For 'low_pass'/'high_pass': Fraction of width/height to keep (e.g., 0.15 = 15%)
 # For 'magnitude': Percentile to CUT (e.g., 95 = keep top 5%)
 # For 'hybrid': Tuple (fraction, percentile) -> (0.15, 90)
-DENOISE_VALUE = 0.10
+DENOISE_VALUE = 0.20
 
 # ------------------- MODE 4 (RUNTIME ANALYSIS) CONFIGS -------------------
 
 # Range of problem sizes (2D matrix) (Powers of 2) (e.g. 5 = 2^5 x 2^5)
 # WARNING: Naive DFT is slow
 RUNTIME_MIN_POWER = 1
-RUNTIME_MAX_POWER = 8
+RUNTIME_MAX_POWER = 10
 
 # Confidence Interval for error bars (e.g., 2.0 std devs approx 95%)
 CONFIDENCE_FACTOR = 2.0
-NUM_TRIALS = 10
+NUM_TRIALS = 5
 
 
 # ----------------------------- MAIN CODE -----------------------------
@@ -58,9 +58,9 @@ def load_image(filename):
     if h != next_h or w != next_w:
         padded_img = np.zeros((next_h, next_w))
         padded_img[:h, :w] = img
-        return padded_img
+        return padded_img, h, w
 
-    return img.astype(float)
+    return img.astype(float), h, w
 
 
 def plot_log_magnitude(fft_data, title="FFT Log Magnitude"):
@@ -69,7 +69,7 @@ def plot_log_magnitude(fft_data, title="FFT Log Magnitude"):
     plt.colorbar(im, fraction=0.03, pad=0.03)
 
 
-def handle_mode_1(image, use_numpy=False):
+def handle_mode_1(image, h, w, use_numpy=False):
     # run 2D fast fourier on image
     if use_numpy:
         ft = np.fft.fft2(image)
@@ -79,14 +79,14 @@ def handle_mode_1(image, use_numpy=False):
     # plot the result
     plt.figure(figsize=(12, 6))
     plt.subplot(1, 2, 1)
-    plt.imshow(image, cmap="gray")
+    plt.imshow(image[:h, :w], cmap="gray")
     plt.title("Original Image")
     plt.subplot(1, 2, 2)
     plot_log_magnitude(ft, "FFT (Log Scaled)")
     plt.show()
 
 
-def handle_mode_2(image, method, value):
+def handle_mode_2(image, h, w, method, value):
     # setup
     ft = fft_2d(image)
     rows, cols = ft.shape
@@ -161,17 +161,17 @@ def handle_mode_2(image, method, value):
     plt.figure(figsize=(12, 6))
 
     plt.subplot(1, 2, 1)
-    plt.imshow(image, cmap="gray")
+    plt.imshow(image[:h, :w], cmap="gray")
     plt.title("Original Image")
 
     plt.subplot(1, 2, 2)
-    plt.imshow(img_denoised, cmap="gray")
+    plt.imshow(img_denoised[:h, :w], cmap="gray")
     plt.title(f"Denoised: {method} ({value})")
 
     plt.show()
 
 
-def handle_mode_3(image):
+def handle_mode_3(image, h, w):
     # setup
     ft = fft_2d(image)
     compression_levels = [0, 50, 80, 95, 98, 99.9]
@@ -197,7 +197,7 @@ def handle_mode_3(image):
 
         # plot it
         plt.subplot(2, 3, i + 1)
-        plt.imshow(img_compressed, cmap="gray")
+        plt.imshow(img_compressed[:h, :w], cmap="gray")
         plt.title(f"{p}% Compression")
         plt.axis("off")
 
@@ -313,16 +313,20 @@ def main():
         return
 
     # load image for modes 1, 2, 3
-    img = load_image(args.i)
+    img, h, w = load_image(args.i)
 
     if args.m == 1:
-        handle_mode_1(img, USE_NUMPY)
+        handle_mode_1(img, h, w, USE_NUMPY)
 
     elif args.m == 2:
-        handle_mode_2(img, DENOISE_METHOD, DENOISE_VALUE)
+        handle_mode_2(img, h, w, DENOISE_METHOD, DENOISE_VALUE)
 
     elif args.m == 3:
-        handle_mode_3(img)
+        handle_mode_3(
+            img,
+            h,
+            w,
+        )
 
 
 if __name__ == "__main__":
