@@ -4,6 +4,18 @@ Implemented by: Mathis Bélanger (261049961) & Tarek Namani (261085655)
 
 ## Running the Project
 
+Activate venv:
+
+```bash
+source venv/bin/activate
+```
+
+Windows:
+
+```bash
+.\venv\Scripts\Activate.ps1
+```
+
 ### Mode 1: Visualization [Default]
 
 Displays the original image next to its Log-Magnitude FFT heatmap.
@@ -36,6 +48,12 @@ Plots the performance of your recursive FFT vs. the Naïve DFT over various matr
 
 ```bash
 python3 fft.py -m 4
+```
+
+### Run Unit Tests
+
+```bash
+python3 tests.py
 ```
 
 ## Setting up the Python Environment
