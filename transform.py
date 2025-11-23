@@ -42,8 +42,8 @@ def dft_2d(img):
 
 def fft_1d(x):
     N = len(x)
-    # base case array of size <= 32, use regular DFT to avoid recursion overhead
-    if N <= 32:
+    # base case array of size <= 4, use regular DFT to avoid recursion overhead
+    if N <= 4:
         return dft_1d(x)
 
     # recursion on the odd and even indexed elements

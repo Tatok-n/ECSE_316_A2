@@ -9,6 +9,10 @@ import time
 
 from transform import fft_2d, ifft_2d, dft_2d
 
+# ------------------- MODE 1 (DEFAULT) CONFIGS -------------------
+# USE_NUMPY : boolean (use the numpy fft or not)
+USE_NUMPY = False
+
 # ------------------- MODE 2 (DENOISING) CONFIGS -------------------
 
 # "low_pass"  : Removing high frequencies (Keep corners)
@@ -60,22 +64,26 @@ def load_image(filename):
 
 
 def plot_log_magnitude(fft_data, title="FFT Log Magnitude"):
-    plt.imshow(np.abs(fft_data), cmap="gray", norm=LogNorm())
+    im = plt.imshow(np.abs(fft_data), cmap="magma", norm=LogNorm())
     plt.title(title)
-    plt.colorbar()
+    plt.colorbar(im, fraction=0.03, pad=0.03)
 
 
-def handle_mode_1(image):
+def handle_mode_1(image, use_numpy=False):
     # run 2D fast fourier on image
-    ft = fft_2d(image)
+    if use_numpy:
+        ft = np.fft.fft2(image)
+    else:
+        ft = fft_2d(image)
 
     # plot the result
-    plt.figure(figsize=(10, 5))
+    plt.figure(figsize=(12, 6))
     plt.subplot(1, 2, 1)
     plt.imshow(image, cmap="gray")
     plt.title("Original Image")
     plt.subplot(1, 2, 2)
     plot_log_magnitude(ft, "FFT (Log Scaled)")
+    plt.show()
 
 
 def handle_mode_2(image, method, value):
@@ -308,7 +316,7 @@ def main():
     img = load_image(args.i)
 
     if args.m == 1:
-        handle_mode_1(img)
+        handle_mode_1(img, USE_NUMPY)
 
     elif args.m == 2:
         handle_mode_2(img, DENOISE_METHOD, DENOISE_VALUE)
