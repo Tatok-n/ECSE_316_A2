@@ -20,6 +20,26 @@ def dft_1d(x):
     return X
 
 
+def dft_2d(img):
+    h, w = img.shape
+    rows_result = np.zeros((h, w), dtype=np.complex128)
+
+    # dft each row
+    for i in range(h):
+        rows_result[i] = dft_1d(img[i])
+
+    # transpose to do dft on columns
+    transposed_img = rows_result.T
+    cols_result = np.zeros((w, h), dtype=np.complex128)
+
+    # dft for all columns
+    for i in range(w):
+        cols_result[i] = dft_1d(transposed_img[i])
+
+    # retrasnpose to get result
+    return cols_result.T
+
+
 def fft_1d(x):
     N = len(x)
     # base case array of size <= 32, use regular DFT to avoid recursion overhead
@@ -41,12 +61,36 @@ def fft_1d(x):
 
 
 def fft_2d(img):
-    pass
+    h, w = img.shape
+
+    # FFT the rows
+    rows_result = np.zeros((h, w), dtype=np.complex128)
+    for i in range(h):
+        rows_result[i] = fft_1d(img[i])
+
+    # FFT the columns
+    # transpose so columns becomes rows and we can use fft_1d
+    transposed_img = rows_result.T
+    cols_result = np.zeros((w, h), dtype=np.complex128)
+
+    for i in range(w):
+        cols_result[i] = fft_1d(transposed_img[i])
+
+    # retranspose the result to get the result
+    return cols_result.T
 
 
 def ifft_2d(img_fft):
-    pass
+    # Use the property: IFFT(X) = conj(FFT(conj(X))) / (N*M)
+    h, w = img_fft.shape
 
+    # conjugate image
+    img_conj = np.conjugate(img_fft)
 
-def dft_2d(img):
-    pass
+    # apply fft
+    result_conj = fft_2d(img_conj)
+
+    # conjugate results and divide by N*M
+    result = np.conjugate(result_conj) / (h * w)
+
+    return result
