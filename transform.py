@@ -1,43 +1,38 @@
 import numpy as np
-import cmath
 
 
 def dft_1d(x):
-    N = len(x)
-    # init output array with complex data type
-    X = np.zeros(N, dtype=np.complex128)
+    # X_k = sum(x_n * exp((-2j*pi*k*n)/N) )
+    # Notice that Discrete fourier formula is the dot product of x_n and the exponential terms
 
-    # iterate through each frequency component k
-    for k in range(N):
-        current_sum = 0
-        # iterate through each time sample n
-        for n in range(N):
-            # discrete fourier formula
-            angle = (-2j * np.pi * k * n) / N
-            current_sum += x[n] * np.exp(angle)
-        X[k] = current_sum
+    # make x a vector
+    x = np.asarray(x, dtype=np.complex128)
 
-    return X
+    # get vector width
+    N = x.shape[-1]
+
+    n = np.arange(N)  # create vector 0 to N-1
+    k = n.reshape((N, 1))  # turn into column vector
+
+    # calculate all the exponential terms as a matrix M using nxk matrix multiplication
+    M = np.exp((-2j * np.pi * k * n) / N)
+
+    # dft =  x dot M
+    return np.dot(x, M)
 
 
 def dft_2d(img):
-    h, w = img.shape
-    rows_result = np.zeros((h, w), dtype=np.complex128)
+    # apply dft on the rows
+    rows_result = dft_1d(img)
 
-    # dft each row
-    for i in range(h):
-        rows_result[i] = dft_1d(img[i])
+    # transpose it
+    rows_result_T = rows_result.T
 
-    # transpose to do dft on columns
-    transposed_img = rows_result.T
-    cols_result = np.zeros((w, h), dtype=np.complex128)
+    # apply dft on the colums
+    columns_result = dft_1d(rows_result_T)
 
-    # dft for all columns
-    for i in range(w):
-        cols_result[i] = dft_1d(transposed_img[i])
-
-    # retrasnpose to get result
-    return cols_result.T
+    # retranspose to get original orientation
+    return columns_result.T
 
 
 def fft_1d(x):
