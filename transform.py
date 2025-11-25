@@ -9,7 +9,7 @@ def dft_1d(x):
     x = np.asarray(x, dtype=np.complex128)
 
     # get vector width
-    N = x.shape[-1]
+    N = x.shape[0]
 
     n = np.arange(N)  # create vector 0 to N-1
     k = n.reshape((N, 1))  # turn into column vector
@@ -22,21 +22,20 @@ def dft_1d(x):
 
 
 def dft_2d(img):
-    # apply dft on the rows
-    rows_result = dft_1d(img)
-
-    # transpose it
-    rows_result_T = rows_result.T
-
-    # apply dft on the colums
-    columns_result = dft_1d(rows_result_T)
-
-    # retranspose to get original orientation
-    return columns_result.T
+    # apply dft on rows (axis 1)
+    rows_result = np.apply_along_axis(dft_1d, axis=1, arr=img)
+    # apply dft on columns (axis 0)
+    cols_result = np.apply_along_axis(dft_1d, axis=0, arr=rows_result)
+    return cols_result
 
 
 def fft_1d(x):
-    N = len(x)
+    # make x a vector
+    x = np.asarray(x, dtype=np.complex128)
+
+    # get vector width
+    N = x.shape[0]
+
     # base case array of size <= 4, use regular DFT to avoid recursion overhead
     if N <= 4:
         return dft_1d(x)
@@ -56,23 +55,11 @@ def fft_1d(x):
 
 
 def fft_2d(img):
-    h, w = img.shape
-
-    # FFT the rows
-    rows_result = np.zeros((h, w), dtype=np.complex128)
-    for i in range(h):
-        rows_result[i] = fft_1d(img[i])
-
-    # FFT the columns
-    # transpose so columns becomes rows and we can use fft_1d
-    transposed_img = rows_result.T
-    cols_result = np.zeros((w, h), dtype=np.complex128)
-
-    for i in range(w):
-        cols_result[i] = fft_1d(transposed_img[i])
-
-    # retranspose the result to get the result
-    return cols_result.T
+    # apply fft on rows (axis 1)
+    rows_result = np.apply_along_axis(fft_1d, axis=1, arr=img)
+    # apply fft on columns (axis 0)
+    cols_result = np.apply_along_axis(fft_1d, axis=0, arr=rows_result)
+    return cols_result
 
 
 def ifft_2d(img_fft):
