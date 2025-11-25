@@ -32,11 +32,11 @@ DENOISE_VALUE = 0.20
 # Range of problem sizes (2D matrix) (Powers of 2) (e.g. 5 = 2^5 x 2^5)
 # WARNING: Naive DFT is slow
 RUNTIME_MIN_POWER = 1
-RUNTIME_MAX_POWER = 9
+RUNTIME_MAX_POWER = 8
 
 # Confidence Interval for error bars (e.g., 2.0 std devs approx 95%)
 CONFIDENCE_FACTOR = 2.0
-NUM_TRIALS = 20
+NUM_TRIALS = 10
 
 
 # ----------------------------- MAIN CODE -----------------------------
@@ -253,7 +253,7 @@ def handle_mode_4(min_pow, max_pow, trials, conf_factor):
         fft_stds.append(fs)
 
         print(f"    [Naive DFT]  Mean: {nm:.5f}s | Variance: {nv:.5e}")
-        print(f"    [Custom FFT] Mean: {fm:.5f}s | Variance: {fv:.5e}")
+        print(f"    [FFT] Mean: {fm:.5f}s | Variance: {fv:.5e}")
 
     # Plot
     plt.figure(figsize=(10, 6))
@@ -277,8 +277,8 @@ def handle_mode_4(min_pow, max_pow, trials, conf_factor):
         label="Fast Fourier Transform (2D)",
         capsize=5,
     )
-
-    plt.xlabel("Problem Size (N for NxN matrix)")
+    plt.xscale("log", base=2)
+    plt.xlabel("Problem Size (NxN)")
     plt.ylabel("Runtime (seconds)")
     plt.title(f"Runtime Comparison: Naive vs FFT (Error Bars = {conf_factor}*std)")
     plt.legend()
