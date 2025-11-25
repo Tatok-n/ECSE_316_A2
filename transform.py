@@ -36,8 +36,8 @@ def fft_1d(x):
     # get vector width
     N = x.shape[0]
 
-    # base case array of size <= 4, use regular DFT to avoid recursion overhead
-    if N <= 4:
+    # base case array of size <= 8, use regular DFT to avoid recursion overhead
+    if N <= 8:
         return dft_1d(x)
 
     # recursion on the odd and even indexed elements
