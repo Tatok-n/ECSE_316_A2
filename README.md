@@ -2,17 +2,18 @@
 
 Implemented by: Mathis Bélanger (261049961) & Tarek Namani (261085655)
 
+Using **Python 3.14.0**
+
+[How to set up to environment](#Setting-up-the-Python-Environment)
+
 ## Running the Project
 
 Activate venv:
 
 ```bash
+# mac/linux
 source venv/bin/activate
-```
-
-Windows:
-
-```bash
+# Windows
 .\venv\Scripts\Activate.ps1
 ```
 
