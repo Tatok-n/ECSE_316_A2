@@ -19,20 +19,20 @@ USE_NUMPY = False
 # "high_pass" : Removing low frequencies (Remove corners)
 # "magnitude" : Thresholding everything (Keep strongest coefficients)
 # "hybrid"    : Keep low frequencies AND threshold the rest (Cutoff + Threshold)
-DENOISE_METHOD = "low_pass"
+DENOISE_METHOD = "hybrid"
 
 # Parameter Value depends on method:
 # For 'low_pass'/'high_pass': Fraction of width/height to keep (e.g., 0.15 = 15%)
 # For 'magnitude': Percentile to CUT (e.g., 95 = keep top 5%)
 # For 'hybrid': Tuple (fraction, percentile) -> (0.15, 90)
-DENOISE_VALUE = 0.20
+DENOISE_VALUE = (0.17, 50)
 
 # ------------------- MODE 4 (RUNTIME ANALYSIS) CONFIGS -------------------
 
 # Range of problem sizes (2D matrix) (Powers of 2) (e.g. 5 = 2^5 x 2^5)
 # WARNING: Naive DFT is slow
-RUNTIME_MIN_POWER = 1
-RUNTIME_MAX_POWER = 8
+RUNTIME_MIN_POWER = 5
+RUNTIME_MAX_POWER = 11
 
 # Confidence Interval for error bars (e.g., 2.0 std devs approx 95%)
 CONFIDENCE_FACTOR = 2.0
@@ -279,6 +279,7 @@ def handle_mode_4(min_pow, max_pow, trials, conf_factor):
     )
     plt.xscale("log", base=2)
     plt.xlabel("Problem Size (NxN)")
+    plt.yscale("log", base=10)
     plt.ylabel("Runtime (seconds)")
     plt.title(f"Runtime Comparison: Naive vs FFT (Error Bars = {conf_factor}*std)")
     plt.legend()
